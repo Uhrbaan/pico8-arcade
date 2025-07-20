@@ -1,0 +1,17 @@
+[Unit]
+Description=Pico-8 LED Matrix Arcade
+After=network.target multi-user.target graphical.target
+
+[Service]
+Type=simple
+User=pico
+Group=pico
+WorkingDirectory=/home/pico/pico8-arcade
+ExecStart=/usr/bin/sudo /home/pico/pico8-arcade/.env/bin/python3 /home/pico/pico8-arcade/pico8-arcade.py
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
