@@ -2,11 +2,14 @@ from pyvirtualdisplay.smartdisplay import SmartDisplay, autocrop
 from subprocess import Popen
 from rgbmatrix import RGBMatrix, RGBMatrixOptions
 import time
+import os
 from PIL import Image
 
+HOME = os.environ['HOME']
+
 # setup pico-8 execution
-PICO8_EXEC = '/home/pico/Projects/pico8-arcade/pico-8/pico8'
-PICO8_CART = '/home/pico/Projects/pico8-arcade/test.p8.png'
+PICO8_EXEC = f'{HOME}/pico-8/pico8'
+PICO8_CART = f'{HOME}/pico8-arcade/test.p8.png'
 command = [PICO8_EXEC, '-windowed', '0','-run', PICO8_CART]
 
 options = RGBMatrixOptions()
