@@ -44,8 +44,9 @@ pip install pyvirtualdisplay pillow
 ```
 
 ```sh
-# You can then simply run the pyhton script.
-# sudo /home/pico/pico8-arcade/.env/bin/python3 /home/pico/pico8-arcade/pico8-arcade.py
+# You can then run the pyhton script with
+sudo /home/pico/pico8-arcade/.env/bin/python3 /home/pico/pico8-arcade/pico8-arcade.py
+# And stop it with ctrl-c
 ```
 
 ```sh
