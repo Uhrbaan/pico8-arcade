@@ -24,6 +24,9 @@
 
 #let conf(
   title: "",
+  bg_color: white,
+  fg_color: black,
+  emphasis_color: red,
   doc) = {
 
   set page(
@@ -31,31 +34,24 @@
     flipped: true,
     columns: 6,
     margin: 1.5cm,
-    background: rect(width: 100%, height: 100%, stroke: 5pt + red, outset: -0.5cm),
-    fill: light-peach.lighten(70%)
+    background: rect(width: 100%, height: 100%, stroke: 5pt + emphasis_color, outset: -0.5cm),
+    fill: bg_color,
   )
   
   set columns(gutter: 0.8cm)
-  set text(
-    font:"Adwaita Mono"
-  )
 
   show heading: it => {
-    upper(text(fill: red, it))
+    upper(text(fill: emphasis_color, it))
   } 
 
-  place(
+  place( 
     top + left,
     float: true,
     scope: "parent",
     clearance: 2em
   )[
-    #text(
-      fill: dark-blue,
-      weight: 700,
-      size: 24pt,
-      title
-    )
+    #set text(size: 24pt, weight: "extrabold")
+    #title
   ]
 
   doc
