@@ -16,8 +16,8 @@ using rgb_matrix::RGBMatrix;
 int main()
 {
     RGBMatrix::Options options;
-    options.rows = 128;
-    options.cols = 128;
+    options.rows = 64;
+    options.cols = 64;
     options.chain_length = 4;
     options.parallel = 1;
     options.hardware_mapping = "adafruit-hat";
