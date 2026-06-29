@@ -76,7 +76,7 @@ int main()
                     int source_x = 0;
                     int source_y = 0;
 
-                    if (x < 128)
+                    if (x > 128)
                     {
                         source_y = 0 + y;
                         source_x = x - 0;
