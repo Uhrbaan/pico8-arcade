@@ -17,8 +17,6 @@ echo "Xvfb is ready!"
 # 2. Force PICO-8 to run completely inside display :99 and ignore your desktop desktop
 env DISPLAY=:${DISPLAY_NUM} ${PICO8_PATH} &
 
-sleep 2
-
 # 3. Start the xvfb grabber to display
 ./xvfb-grab
 
