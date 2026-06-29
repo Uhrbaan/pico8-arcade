@@ -30,9 +30,49 @@ struct Framebuffer
   }
 };
 
+// Helper function to spawn PICO-8 with the custom environment
+pid_t launch_pico8()
+{
+  pid_t pid = fork();
+
+  if (pid < 0)
+  {
+    std::println(stderr, "Error: Fork failed.");
+    return -1;
+  }
+
+  if (pid == 0)
+  { // Inside Child Process
+    // Define the environment variables for the child
+    // Ensure you include existing pathing or append what PICO-8 needs
+    char *envp[] = {
+        (char *)"SDL_VIDEODRIVER=kmsdrm",
+        (char *)"PATH=/usr/local/bin:/usr/bin:/bin",
+        nullptr // Must be null-terminated
+    };
+
+    std::println("Child: Launching PICO-8 via KMSDRM...");
+
+    // Adjust the path to where your pico8_dyn binary actually lives
+    execle("/usr/bin/pico8_dyn", "pico8_dyn", "-windowed", "0", nullptr, envp);
+
+    // If execle returns, it means it failed
+    std::println(stderr, "Error: execle failed to start pico8_dyn");
+    _exit(1);
+  }
+
+  // Inside Parent Process: return the child's PID so we can track/kill it later
+  return pid;
+}
+
 int main()
 {
-  // 1. Initialize RGB Matrix Options
+  // Start pico8 inside kmsdrm (kernel buffer)
+  int pid = launch_pico8();
+  if (pid < 0)
+    return 1;
+
+  // Initialize RGB Matrix Options
   RGBMatrix::Options options;
   options.rows = 64;
   options.cols = 64;
@@ -55,7 +95,7 @@ int main()
   rgb_matrix::FrameCanvas *canvas = matrix->CreateFrameCanvas();
   Framebuffer fb;
 
-  // 2. Open & Map Linux Framebuffer
+  // Open & Map Linux Framebuffer
   fb.fd = open("/dev/fb0", O_RDONLY);
   if (fb.fd < 0)
   {
