@@ -1,19 +1,36 @@
 #include "rpi-rgb-led-matrix/include/led-matrix.h"
 #include <fcntl.h>
-#include <iostream>
 #include <linux/fb.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <print> // Modern C++23 printing
+#include <memory>
 
 using rgb_matrix::Canvas;
 using rgb_matrix::RGBMatrix;
 
-// Match your hardware layout
-#define PICO_WIDTH 128
-#define PICO_HEIGHT 128
+constexpr int PICO_WIDTH = 128;
+constexpr int PICO_HEIGHT = 128;
 
-int main(int argc, char *argv[])
+// RAII structural wrapper to automatically clean up system resources
+struct Framebuffer
+{
+  int fd = -1;
+  uint32_t *mem = nullptr;
+  size_t size = 0;
+  fb_var_screeninfo vinfo{};
+
+  ~Framebuffer()
+  {
+    if (mem && mem != MAP_FAILED)
+      munmap(mem, size);
+    if (fd >= 0)
+      close(fd);
+  }
+};
+
+int main()
 {
   // 1. Initialize RGB Matrix Options
   RGBMatrix::Options options;
@@ -28,77 +45,56 @@ int main(int argc, char *argv[])
   rgb_matrix::RuntimeOptions runtime_options;
   runtime_options.gpio_slowdown = 3;
 
-  RGBMatrix *matrix = RGBMatrix::CreateFromOptions(options, runtime_options);
-  if (matrix == nullptr)
+  std::unique_ptr<RGBMatrix> matrix{RGBMatrix::CreateFromOptions(options, runtime_options)};
+  if (!matrix)
   {
-    std::cerr << "Failed to initialize LED Matrix." << std::endl;
+    std::println(stderr, "Error: Failed to initialize LED Matrix.");
     return 1;
   }
 
   rgb_matrix::FrameCanvas *canvas = matrix->CreateFrameCanvas();
+  Framebuffer fb;
 
-  // 2. Open Linux Framebuffer
-  int fb_fd = open("/dev/fb0", O_RDONLY);
-  if (fb_fd < 0)
+  // 2. Open & Map Linux Framebuffer
+  fb.fd = open("/dev/fb0", O_RDONLY);
+  if (fb.fd < 0)
   {
-    std::cerr << "Error: Cannot open framebuffer device /dev/fb0. Run as sudo?"
-              << std::endl;
+    std::println(stderr, "Error: Cannot open framebuffer device /dev/fb0. Run as sudo?");
     return 1;
   }
 
-  // Get variable screen information (to map screen dimensions correctly)
-  struct fb_var_screeninfo vinfo;
-  if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo))
+  if (ioctl(fb.fd, FBIOGET_VSCREENINFO, &fb.vinfo))
   {
-    std::cerr << "Error reading variable information." << std::endl;
-    close(fb_fd);
+    std::println(stderr, "Error: Failed to read variable screen information.");
     return 1;
   }
 
-  // Calculate memory mapping sizing
-  long screensize = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
-  uint32_t *fbp =
-      (uint32_t *)mmap(0, screensize, PROT_READ, MAP_SHARED, fb_fd, 0);
-  if ((long)fbp == -1)
+  fb.size = fb.vinfo.xres * fb.vinfo.yres * fb.vinfo.bits_per_pixel / 8;
+  fb.mem = static_cast<uint32_t *>(mmap(nullptr, fb.size, PROT_READ, MAP_SHARED, fb.fd, 0));
+
+  if (fb.mem == MAP_FAILED)
   {
-    std::cerr << "Error: Failed to mmap framebuffer." << std::endl;
-    close(fb_fd);
+    std::println(stderr, "Error: Failed to mmap framebuffer.");
     return 1;
   }
 
-  std::cout << "Bridge started successfully. Press Ctrl+C to exit."
-            << std::endl;
+  std::println("Bridge started successfully. Press Ctrl+C to exit.");
 
   // 3. Main Loop: Blit framebuffer to LED Matrix
   while (true)
   {
-    // PICO-8 outputs 128x128. Let's capture that region from the top-left of
-    // /dev/fb0
     for (int y = 0; y < PICO_HEIGHT; ++y)
     {
       for (int x = 0; x < PICO_WIDTH; ++x)
       {
-        // Get pixel from framebuffer (assuming 32-bit depth ARGB/XRGB)
-        uint32_t pixel = fbp[y * vinfo.xres + x];
+        // Read 32-bit pixel directly from memory map
+        uint32_t pixel = fb.mem[y * fb.vinfo.xres + x];
+
         uint8_t r = (pixel >> 16) & 0xFF;
         uint8_t g = (pixel >> 8) & 0xFF;
         uint8_t b = pixel & 0xFF;
 
-        // // Software Contrast Enhancement (Roughly equivalent to Python's
-        // // Enhance) Adjust factor (3.0) as needed
-        // auto enhance = [](uint8_t val) -> uint8_t
-        // {
-        //   int dynamic = static_cast<int>((val - 128) * 3.0 + 128);
-        //   return (dynamic > 255) ? 255 : ((dynamic < 0) ? 0 : dynamic);
-        // };
-
-        // r = enhance(r);
-        // g = enhance(g);
-        // b = enhance(b);
-
-        // Rearrange layout logic:
-        // Upper box (0-128 wide, 0-64 high) -> drawn at Canvas X=128
-        // Lower box (0-128 wide, 64-128 high) -> drawn at Canvas X=0
+        // Split 128x128 PICO-8 frame across the matrix physical dimensions
         if (y < 64)
         {
           canvas->SetPixel(x + 128, y, r, g, b);
@@ -110,17 +106,9 @@ int main(int argc, char *argv[])
       }
     }
 
-    // Swap buffer onto the matrix natively
     canvas = matrix->SwapOnVSync(canvas);
-
-    // Minor delay to keep CPU from spinning at 100% thread utility
-    // 16ms roughly targets ~60 FPS matching PICO-8's inner engine
-    usleep(16000);
+    usleep(16000); // Target ~60 FPS
   }
 
-  // Cleanup (unreachable here, but proper practice)
-  munmap(fbp, screensize);
-  close(fb_fd);
-  delete matrix;
   return 0;
 }

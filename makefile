@@ -1,21 +1,16 @@
-# Makefile with conditionals
+CXX = g++
+CXXFLAGS = -std=c++23 -Wall -Wextra -O3 -I./rpi-rgb-led-matrix/include
+LDFLAGS = -L./rpi-rgb-led-matrix/lib -lrgbmatrix -lrt -lm -lpthread
 
-CC = g++
-CFLAGS = -Wall
-INCLUDE = -Irpi-rgb-led-matrix/include
-LIBS = -Lrpi-rgb-led-matrix/lib -lrgbmatrix -lpthread
+TARGET = pico8arcade
+SRCS = main.cpp
 
-ifdef DEBUG
-    CFLAGS += -g -DDEBUG
-else 
-	CFLAGS += -O3
-endif
+all: $(TARGET)
 
-math_app: math.o
-    $(CC) $(CFLAGS) -o math_app math.o $(LIBS)
-
-math.o: math.c
-    $(CC) $(CFLAGS) -c math.c
+$(TARGET): $(SRCS)
+	$(CXX) $(CXXFLAGS) $(SRCS) -o $(TARGET) $(LDFLAGS)
 
 clean:
-    rm -f math_app math.o
+	rm -f $(TARGET)
+
+.PHONY: all clean
