@@ -50,7 +50,11 @@ int main()
     XWindowAttributes gwa;
     XGetWindowAttributes(display, root, &gwa);
 
-    printf("[Success] Connected to Xvfb! Resolution: %dx%d\n", gwa.width, gwa.height);
+    int xvfb_w = gwa.width;
+    int xvfb_h = gwa.height;
+    int matrix_w = matrix->width();
+    int matrix_h = matrix->height();
+    printf("[Success] Connected to Xvfb! Resolution: %dx%d\n", xvfb_w, xvfb_h);
     printf("Starting loop. Press Ctrl+C to stop.\n");
 
     unsigned long frame_count = 0;
@@ -58,20 +62,32 @@ int main()
     while (true)
     {
         // Pull raw window pixels directly from Xvfb memory
-        XImage *image = XGetImage(display, root, 0, 0, 128, 128, AllPlanes, ZPixmap);
+        XImage *image = XGetImage(display, root, 0, 0, xvfb_w, xvfb_h, AllPlanes, ZPixmap);
 
         if (image != nullptr)
         {
             // Map Xvfb pixels to Matrix pins.
             // If resolutions match perfectly (e.g. 128x128 to a 128x128 matrix wall), 1:1 mapping applies.
             // If they differ, downscale here.
-            for (int y = 0; y < 128; ++y)
+            for (int y = 0; y < matrix_h; ++y)
             {
-                for (int x = 0; x < 128; ++x)
+                for (int x = 0; x < matrix_w; ++x)
                 {
+                    int source_x = 0;
+                    int source_y = 0;
+
+                    if (x < 128)
+                    {
+                        source_y = 0 + y;
+                        source_x = x - 0;
+                    }
+                    else
+                    {
+                        source_y = 64 + y;
+                        source_x = x - 128;
+                    }
+
                     // Map local iteration safely to Xvfb boundaries
-                    int source_x = x;
-                    int source_y = y;
 
                     unsigned long pixel = XGetPixel(image, source_x, source_y);
 
