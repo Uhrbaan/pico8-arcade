@@ -7,7 +7,7 @@ Type=simple
 User=root
 Environment=HOME=/home/pico
 WorkingDirectory=/home/pico
-ExecStart=/home/pico/xvfb-start.sh
+ExecStart=/home/pico/pico8-arcade/xvfb-start.sh
 Restart=on-failure
 
 [Install]

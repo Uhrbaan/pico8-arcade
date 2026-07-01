@@ -2,7 +2,7 @@
 
 DISPLAY_NUM="99"
 RESOLUTION="128x128x24"
-PICO8_PATH="/home/pico/pico-8/pico8_64 -splore"
+PICO8_PATH="/home/pico/pico-8/pico8 -splore"
 
 # Start a Xvfb
 Xvfb :${DISPLAY_NUM} -screen 0 ${RESOLUTION} +extension GLX +render -noreset &
@@ -17,7 +17,7 @@ echo "Xvfb is ready!"
 env DISPLAY=:${DISPLAY_NUM} ${PICO8_PATH} &
 
 # Start the grabber
-./xvfb-grab
+/home/pico/pico8-arcade/xvfb-grab
 
 # Keep script running to let you kill everything with Ctrl+C
 trap 'kill $(jobs -p)' EXIT
