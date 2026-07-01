@@ -1,2 +1,5 @@
 .env
+venv
 *.pdf
+xvfb-grab
+.vscode
