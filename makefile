@@ -1,9 +1,9 @@
 CXX = g++
-CXXFLAGS = -std=c++23 -Wall -Wextra -O3 -I./rpi-rgb-led-matrix/include
-LDFLAGS = -L./rpi-rgb-led-matrix/lib -lrgbmatrix -lrt -lm -lpthread
+CXXFLAGS = -O3 -Wall -Wextra -std=c++23 -I ./rpi-rgb-led-matrix/include
+LDFLAGS = -L ./rpi-rgb-led-matrix/lib -lrgbmatrix -lX11 -lpthread
 
-TARGET = pico8arcade
-SRCS = main.cpp
+TARGET = xvfb-grab
+SRCS = xvfb-grab.cpp
 
 all: $(TARGET)
 

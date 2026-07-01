@@ -22,7 +22,7 @@ int main()
     options.parallel = 1;
     options.hardware_mapping = "adafruit-hat";
     options.disable_hardware_pulsing = true;
-    options.brightness = 60;
+    options.brightness = 100;
 
     rgb_matrix::RuntimeOptions runtime_options;
     runtime_options.gpio_slowdown = 3;
@@ -36,8 +36,7 @@ int main()
 
     rgb_matrix::FrameCanvas *canvas = matrix->CreateFrameCanvas();
 
-    // 1. Connect to the Xvfb display server.
-    // Ensure you change ":99" if your Xvfb is running on a different display number.
+    // Connect to the X11 virtual framebuffer
     Display *display = XOpenDisplay(":99");
     if (!display)
     {
@@ -45,7 +44,6 @@ int main()
         return 1;
     }
 
-    // 2. Get the root window ID and its attributes (dimensions)
     Window root = DefaultRootWindow(display);
     XWindowAttributes gwa;
     XGetWindowAttributes(display, root, &gwa);
@@ -55,20 +53,16 @@ int main()
     int matrix_w = matrix->width();
     int matrix_h = matrix->height();
     printf("[Success] Connected to Xvfb! Resolution: %dx%d\n", xvfb_w, xvfb_h);
-    printf("Starting loop. Press Ctrl+C to stop.\n");
 
     unsigned long frame_count = 0;
-
     while (true)
     {
-        // Pull raw window pixels directly from Xvfb memory
+        // Get image from virtual framebuffer
         XImage *image = XGetImage(display, root, 0, 0, xvfb_w, xvfb_h, AllPlanes, ZPixmap);
 
         if (image != nullptr)
         {
-            // Map Xvfb pixels to Matrix pins.
-            // If resolutions match perfectly (e.g. 128x128 to a 128x128 matrix wall), 1:1 mapping applies.
-            // If they differ, downscale here.
+            // Since we connect the matrices sequentially, we have to map the screen to a long rectangle
             for (int y = 0; y < matrix_h; ++y)
             {
                 for (int x = 0; x < matrix_w; ++x)
@@ -87,28 +81,19 @@ int main()
                         source_x = x - 128;
                     }
 
-                    // Map local iteration safely to Xvfb boundaries
-
                     unsigned long pixel = XGetPixel(image, source_x, source_y);
 
-                    // Deconstruct X11 native hex colors into RGB bytes
                     uint8_t r = (pixel & image->red_mask) >> 16;
                     uint8_t g = (pixel & image->green_mask) >> 8;
                     uint8_t b = (pixel & image->blue_mask);
 
-                    // Push to our hardware offscreen canvas
                     canvas->SetPixel(x, y, r, g, b);
                 }
             }
 
-            // Instantly swap the memory chunk over the GPIO pins at hardware VSync
             canvas = matrix->SwapOnVSync(canvas);
-
-            // CRITICAL: Immediately clear out the XImage memory allocation loop context
             XDestroyImage(image);
         }
-
-        // Modest sleep parameter (~60fps) to keep the host CPU entirely cool
         usleep(16666);
     }
 

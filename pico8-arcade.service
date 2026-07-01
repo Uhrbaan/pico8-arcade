@@ -1,18 +1,14 @@
 [Unit]
-Description=Pico-8 LED Matrix Arcade
-After=network.target multi-user.target graphical.target
+Description=Pico-8 LED Matrix App
+After=network.target
 
 [Service]
 Type=simple
-User=luclement
-Group=luclement
-WorkingDirectory=/mnt/storage/Projets/pico8-arcade 
-ExecStart=/mnt/storage/Projets/pico8-arcade/venv/bin/python3 /mnt/storage/Projets/pico8-arcade/pico8-arcade.py
+User=root
+Environment=HOME=/home/pico
+WorkingDirectory=/home/pico
+ExecStart=/home/pico/xvfb-start.sh
 Restart=on-failure
-RestartSec=5s
-StandardOutput=journal
-StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-
